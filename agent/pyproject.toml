@@ -1,0 +1,17 @@
+[project]
+name = "maneuver-voice-agent"
+version = "1.0.0"
+description = "Voice AI 'Talk to Founder' agent for Maneuver — LiveKit + Deepgram + Gemini"
+requires-python = ">=3.11"
+dependencies = [
+    "livekit-agents[silero,turn-detector,google,deepgram]~=1.5",
+    "python-dotenv>=1.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.32.0",
+    "livekit-api>=0.7.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "ruff>=0.8.0",
+]
