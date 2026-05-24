@@ -5,9 +5,30 @@
  * Design: Maps agent RPC method names → React state setters.
  * When the agent calls a tool (e.g., show_services_slide), the LiveKit
  * framework routes the RPC to this handler, which updates the visual layer.
+ *
+ * Key fix: Uses a registration guard + try/catch to handle React StrictMode's
+ * double-mount and prevents "already registered" crashes.
  */
 
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useRef } from "react";
+
+const RPC_METHODS = ["show_visual", "update_lead", "call_ended"];
+
+/**
+ * Safely register a single RPC method, unregistering first if it already exists.
+ *
+ * @param {import("livekit-client").LocalParticipant} participant
+ * @param {string} method
+ * @param {function} handler
+ */
+function safeRegisterRpc(participant, method, handler) {
+  try {
+    participant.unregisterRpcMethod(method);
+  } catch {
+    // Method wasn't registered yet — that's fine
+  }
+  participant.registerRpcMethod(method, handler);
+}
 
 /**
  * Register RPC handlers on a LiveKit local participant.
@@ -26,7 +47,7 @@ export function useRpcHandler(localParticipant, callbacks) {
     if (!localParticipant) return;
 
     // Register: show_visual — handles all visual layer updates
-    localParticipant.registerRpcMethod("show_visual", async (data) => {
+    safeRegisterRpc(localParticipant, "show_visual", async (data) => {
       try {
         const payload = JSON.parse(data.payload);
         callbacksRef.current.onVisualUpdate?.(payload);
@@ -38,7 +59,7 @@ export function useRpcHandler(localParticipant, callbacks) {
     });
 
     // Register: update_lead — handles lead field captures
-    localParticipant.registerRpcMethod("update_lead", async (data) => {
+    safeRegisterRpc(localParticipant, "update_lead", async (data) => {
       try {
         const payload = JSON.parse(data.payload);
         callbacksRef.current.onLeadUpdate?.(payload);
@@ -50,7 +71,7 @@ export function useRpcHandler(localParticipant, callbacks) {
     });
 
     // Register: call_ended — handles call completion
-    localParticipant.registerRpcMethod("call_ended", async (data) => {
+    safeRegisterRpc(localParticipant, "call_ended", async (data) => {
       try {
         const payload = JSON.parse(data.payload);
         callbacksRef.current.onCallEnded?.(payload);
@@ -62,5 +83,17 @@ export function useRpcHandler(localParticipant, callbacks) {
     });
 
     console.log("[RPC] Handlers registered on", localParticipant.identity);
+
+    // Cleanup: unregister all methods when effect tears down
+    return () => {
+      RPC_METHODS.forEach((method) => {
+        try {
+          localParticipant.unregisterRpcMethod(method);
+        } catch {
+          // Already cleaned up
+        }
+      });
+      console.log("[RPC] Handlers unregistered");
+    };
   }, [localParticipant]);
 }
