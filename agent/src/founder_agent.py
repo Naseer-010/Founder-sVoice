@@ -20,9 +20,9 @@ from typing import Any
 
 from livekit.agents import Agent, RunContext, function_tool
 
-from .lead_manager import LeadManager
-from .knowledge_base import load_knowledge_base
-from .prompts import build_system_prompt
+from lead_manager import LeadManager
+from knowledge_base import load_knowledge_base
+from prompts import build_system_prompt
 
 logger = logging.getLogger(__name__)
 

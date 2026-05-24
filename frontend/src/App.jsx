@@ -1,131 +1,65 @@
 /**
- * App.jsx — Root Application Component
- *
- * Manages the top-level routing between the ConnectionScreen and the active SessionView.
- * Wraps the SessionView in LiveKitRoom to provide WebRTC context.
- *
- * Includes an ErrorBoundary to catch crashes in SessionView gracefully
- * instead of showing a blank white/black screen.
+ * App.jsx — Root component.
+ * Routes between landing page and live session.
+ * RoomAudioRenderer is CRITICAL — without it, remote audio tracks are not played.
  */
 
 import React from "react";
-import { LiveKitRoom } from "@livekit/components-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import "@livekit/components-styles";
 
-import AppShell from "./components/layout/AppShell";
-import ConnectionScreen from "./components/session/ConnectionScreen";
-import SessionView from "./components/session/SessionView";
+import ConnectionScreen from "./components/ConnectionScreen";
+import SessionView from "./components/SessionView";
 import { useAgentConnection } from "./hooks/useAgentConnection";
 
-// ────────────────────────────────────────────────────────
-// Error Boundary — catches render-time crashes in children
-// ────────────────────────────────────────────────────────
-class SessionErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, info) {
-    console.error("[SessionErrorBoundary] Caught:", error, info);
-  }
-
+class ErrorBoundary extends React.Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(err, info) { console.error("[ErrorBoundary]", err, info); }
   render() {
-    if (this.state.hasError) {
+    if (this.state.error) {
       return (
-        <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-16 h-16 rounded-full bg-accent-rose/20 flex items-center justify-center mb-4">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-accent-rose">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="15" y1="9" x2="9" y2="15" />
-              <line x1="9" y1="9" x2="15" y2="15" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold mb-2 text-text-primary">Session Error</h2>
-          <p className="text-text-secondary text-sm mb-6 max-w-md">
-            Something went wrong during the voice session. This is usually a temporary issue.
-          </p>
-          <button
-            onClick={() => {
-              this.setState({ hasError: false, error: null });
-              this.props.onReset?.();
-            }}
-            className="btn-primary"
-          >
-            Try Again
-          </button>
-          <p className="text-text-muted text-xs mt-4 font-mono max-w-md break-all">
-            {this.state.error?.message}
-          </p>
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32 }}>
+          <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Something went wrong</p>
+          <p style={{ color: "#71717a", fontSize: 13, marginBottom: 20, maxWidth: 400, textAlign: "center" }}>{this.state.error.message}</p>
+          <button onClick={() => { this.setState({ error: null }); this.props.onReset?.(); }} className="btn-primary">Try again</button>
         </div>
       );
     }
-
     return this.props.children;
   }
 }
 
-// ────────────────────────────────────────────────────────
-// App Root
-// ────────────────────────────────────────────────────────
-
 export default function App() {
   const { connectionState, connectionData, error, connect, disconnect } = useAgentConnection();
-
   const isConnected = connectionState === "connected" && connectionData;
 
+  if (!isConnected) {
+    return (
+      <ConnectionScreen
+        onConnect={connect}
+        isConnecting={connectionState === "connecting"}
+        error={error}
+      />
+    );
+  }
+
   return (
-    <AppShell>
-      <AnimatePresence mode="wait">
-        {!isConnected ? (
-          <motion.div
-            key="connection-screen"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4 }}
-            className="h-full w-full"
-          >
-            <ConnectionScreen 
-              onConnect={connect} 
-              isConnecting={connectionState === "connecting"} 
-              error={error} 
-            />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="session-view"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="h-full w-full"
-          >
-            <LiveKitRoom
-              serverUrl={connectionData.url}
-              token={connectionData.token}
-              connect={true}
-              audio={true}
-              video={false}
-              onDisconnected={() => {
-                console.log("[LiveKit] Room disconnected");
-                disconnect();
-              }}
-              onError={(err) => {
-                console.error("[LiveKit] Room error:", err);
-              }}
-            >
-              <SessionErrorBoundary onReset={disconnect}>
-                <SessionView onDisconnect={disconnect} />
-              </SessionErrorBoundary>
-            </LiveKitRoom>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </AppShell>
+    <LiveKitRoom
+      serverUrl={connectionData.url}
+      token={connectionData.token}
+      connect={true}
+      audio={true}
+      video={false}
+      onDisconnected={() => disconnect()}
+      onError={(err) => console.error("[LiveKit]", err)}
+      style={{ height: "100%", width: "100%" }}
+    >
+      {/* THIS is what actually plays the agent's audio track */}
+      <RoomAudioRenderer />
+      <ErrorBoundary onReset={disconnect}>
+        <SessionView onDisconnect={disconnect} />
+      </ErrorBoundary>
+    </LiveKitRoom>
   );
 }

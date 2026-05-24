@@ -22,8 +22,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from livekit.api import AccessToken, VideoGrants
 
-from .config import get_livekit_settings
-from .lead_manager import LeadManager
+from config import get_livekit_settings
+from lead_manager import LeadManager
 
 logger = logging.getLogger(__name__)
 

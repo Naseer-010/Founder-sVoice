@@ -1,20 +1,13 @@
 """
 agent.py — Main entrypoint for the Maneuver Voice AI Agent.
 
-This is the primary executable that runs:
-  1. The LiveKit Agent Server (handles WebRTC rooms + voice pipeline)
-  2. A FastAPI token server (HTTP, for frontend auth)
-
-Architecture:
-  - Uses the latest AgentServer + @rtc_session pattern (LiveKit Agents v1.5+)
-  - STT: Deepgram Nova-3 (streaming, low latency)
-  - LLM: Google Gemini 2.5 Flash (via livekit-plugins-google)
-  - TTS: Google TTS (server-side, streams audio back via WebRTC)
-  - VAD: Silero (acoustic voice activity detection)
-
-Run:
-  uv run src/agent.py dev       # Development mode
-  uv run src/agent.py console   # Terminal-only testing
+Pipeline:
+  Mic → LiveKit → Deepgram STT → Gemini 2.5 Flash → text transcription → Frontend
+  
+  TTS is MODULAR — controlled by TTS_MODE env var:
+    "browser"  (default) — No server TTS. Text streams to frontend, browser speaks it.
+    "google"             — Google Cloud TTS (needs GOOGLE_APPLICATION_CREDENTIALS).
+    "gemini"             — Gemini-native TTS via google.beta.TTS (uses GOOGLE_API_KEY).
 """
 
 from __future__ import annotations
@@ -25,20 +18,21 @@ import sys
 import threading
 from pathlib import Path
 
+# Ensure src/ is on sys.path so bare imports work (config, token_server, etc.)
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+SRC_DIR = Path(__file__).resolve().parent
+for p in (str(PROJECT_ROOT), str(SRC_DIR)):
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 from livekit import agents
-from livekit.agents import AgentServer, AgentSession, TurnHandlingOptions
+from livekit.agents import AgentServer, AgentSession
 from livekit.plugins import deepgram, google, silero
 
-from src.config import load_environment
+from config import load_environment
 
-# Load environment variables
 load_environment()
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -47,99 +41,101 @@ logging.basicConfig(
 logger = logging.getLogger("maneuver.agent")
 
 
-# ──────────────────────────────────────────────────────────────
-# Token Server — runs in a background thread
-# ──────────────────────────────────────────────────────────────
+# ── Token Server ──────────────────────────────────────────────
 
 def start_token_server() -> None:
-    """Start the FastAPI token server in a background thread."""
     import uvicorn
-    from src.token_server import create_token_server
+    from token_server import create_token_server
 
     app = create_token_server()
-    config = uvicorn.Config(
-        app,
-        host="0.0.0.0",
-        port=8081,
-        log_level="info",
-    )
-    server = uvicorn.Server(config)
-
-    thread = threading.Thread(target=server.run, daemon=True, name="token-server")
+    config = uvicorn.Config(app, host="0.0.0.0", port=8081, log_level="info")
+    srv = uvicorn.Server(config)
+    thread = threading.Thread(target=srv.run, daemon=True, name="token-server")
     thread.start()
     logger.info("Token server started on http://localhost:8081")
 
 
-# ──────────────────────────────────────────────────────────────
-# Agent Server — LiveKit Agent entrypoint
-# ──────────────────────────────────────────────────────────────
+# ── TTS Factory ───────────────────────────────────────────────
+
+def build_tts():
+    """
+    Build a TTS engine based on TTS_MODE env var.
+    
+    Modes:
+      "browser" — returns None. The frontend handles TTS via SpeechSynthesis.
+      "gemini"  — Gemini-native TTS (uses GOOGLE_API_KEY, same as LLM).
+      "google"  — Google Cloud TTS (needs GOOGLE_APPLICATION_CREDENTIALS JSON).
+    """
+    mode = os.environ.get("TTS_MODE", "browser").lower().strip()
+
+    if mode == "browser":
+        logger.info("TTS_MODE=browser — no server TTS, frontend will use SpeechSynthesis")
+        return None
+
+    if mode == "gemini":
+        try:
+            engine = google.beta.TTS(voice="Kore", language="en-US")
+            logger.info("TTS_MODE=gemini — using Gemini TTS (voice=Kore)")
+            return engine
+        except (AttributeError, Exception) as e:
+            logger.error("Gemini TTS failed: %s — falling back to browser TTS", e)
+            return None
+
+    if mode == "google":
+        try:
+            engine = google.TTS(language="en-US")
+            logger.info("TTS_MODE=google — using Google Cloud TTS")
+            return engine
+        except Exception as e:
+            logger.error("Google Cloud TTS failed: %s — falling back to browser TTS", e)
+            return None
+
+    logger.warning("Unknown TTS_MODE=%s — defaulting to browser", mode)
+    return None
+
+
+# ── Agent Server ──────────────────────────────────────────────
 
 server = AgentServer()
 
 
-@server.rtc_session(agent_name="maneuver-founder")
+@server.rtc_session()
 async def entrypoint(ctx: agents.JobContext) -> None:
-    """
-    Called when a new participant joins a room.
-    Sets up the voice pipeline and starts the FounderAgent.
-    """
-    from src.founder_agent import FounderAgent
+    from founder_agent import FounderAgent
 
-    logger.info("New session starting — room=%s", ctx.room.name)
+    logger.info("New session — room=%s", ctx.room.name)
 
-    # Initialize the voice pipeline components
-    session = AgentSession(
-        # Speech-to-Text: Deepgram Nova-3 for streaming transcription
-        stt=deepgram.STT(
-            model="nova-3",
-            language="en",
-        ),
-        # LLM: Gemini 2.5 Flash for ultra-fast inference
-        llm=google.LLM(
-            model="gemini-2.5-flash",
-        ),
-        # TTS: Google TTS for high-quality speech synthesis
-        tts=google.TTS(
-            language="en-US",
-        ),
-        # VAD: Silero for acoustic voice activity detection
+    tts_engine = build_tts()
+
+    session_kwargs = dict(
+        stt=deepgram.STT(model="nova-3", language="en"),
+        llm=google.LLM(model="gemini-2.5-flash"),
         vad=silero.VAD.load(),
-        # Turn handling: balanced for natural conversation
-        turn_handling=TurnHandlingOptions(
-            # Enable preemptive generation for lower latency
-            # The agent starts generating before the user fully finishes
-        ),
     )
+    # Only add TTS if we have a server-side engine
+    if tts_engine is not None:
+        session_kwargs["tts"] = tts_engine
 
-    # Create the founder agent instance
+    session = AgentSession(**session_kwargs)
     agent = FounderAgent()
 
-    # Start the session
-    await session.start(
-        room=ctx.room,
-        agent=agent,
-    )
+    await session.start(room=ctx.room, agent=agent)
 
     # Greet the visitor
     await session.generate_reply(
         instructions=(
             "Greet the visitor warmly. Introduce yourself as Alex from Maneuver. "
-            "Say something like 'Hey there! I'm Alex, the founder of Maneuver. "
-            "Thanks for stopping by. What brings you here today?' "
-            "Keep it short and natural — one to two sentences max."
+            "Say something like 'Hey there, I'm Alex from Maneuver. "
+            "Thanks for stopping by — what brings you here today?' "
+            "Keep it to one or two sentences."
         ),
     )
 
-    logger.info("FounderAgent started — lead_id=%s", agent.lead_manager.lead_id)
+    logger.info("Agent started — lead_id=%s", agent.lead_manager.lead_id)
 
 
-# ──────────────────────────────────────────────────────────────
-# Main
-# ──────────────────────────────────────────────────────────────
+# ── Main ──────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # Start the token server for frontend auth
     start_token_server()
-
-    # Run the LiveKit agent server (blocks)
     agents.cli.run_app(server)
