@@ -16,7 +16,7 @@ export default function ServiceDetail({ data }) {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: "spring", stiffness: 200, damping: 20 }}
-      className="h-full overflow-y-auto flex flex-col px-4 py-4"
+      className="visual-scroll flex flex-col px-4 py-4"
     >
       {/* Header */}
       <motion.div

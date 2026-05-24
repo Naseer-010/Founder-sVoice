@@ -15,7 +15,7 @@ export default function CaseStudyCard({ data }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ type: "spring", stiffness: 200, damping: 20 }}
-      className="h-full overflow-y-auto flex flex-col px-4 py-4"
+      className="visual-scroll flex flex-col px-4 py-4"
     >
       <motion.div
         initial={{ opacity: 0 }}

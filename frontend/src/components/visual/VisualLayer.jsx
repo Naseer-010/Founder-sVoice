@@ -34,7 +34,7 @@ export default function VisualLayer({ currentVisual }) {
   const Component = VISUAL_COMPONENTS[visualType] || WelcomeVisual;
 
   return (
-    <div className="h-full w-full overflow-hidden glass rounded-lg">
+    <div className="panel-surface w-full overflow-hidden glass">
       <AnimatePresence mode="wait">
         <Component key={visualType} data={visualData} />
       </AnimatePresence>

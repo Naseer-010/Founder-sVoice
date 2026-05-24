@@ -89,9 +89,9 @@ export default function SessionView({ onDisconnect }) {
   useRpcHandler(localParticipant, rpcCallbacks);
 
   return (
-    <div className="min-h-full w-full p-4 md:p-6 flex flex-col overflow-y-auto">
+    <div className="session-page">
       {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3 mb-4 md:mb-6 shrink-0">
+      <header className="session-header">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-cyan to-accent-purple flex items-center justify-center shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
@@ -109,17 +109,17 @@ export default function SessionView({ onDisconnect }) {
         </button>
       </header>
 
-      <div className="flex-1 grid grid-cols-1 xl:grid-cols-[minmax(250px,0.85fr)_minmax(420px,1.8fr)_minmax(250px,0.85fr)] gap-4 md:gap-6 min-h-0">
+      <main className="session-grid">
         
         {/* Left Column: Transcript */}
-        <section className="order-2 xl:order-1 min-h-[320px] xl:h-full xl:min-h-0">
+        <section className="session-panel">
           <TranscriptPanel room={room} agentName={agentName} />
         </section>
 
         {/* Center Column: Visual Layer & Agent Orb */}
-        <section className="order-1 xl:order-2 min-h-[620px] xl:h-full xl:min-h-0 flex flex-col gap-4 md:gap-6">
+        <section className="session-stage">
           {/* Visual Canvas */}
-          <div className="flex-[3] min-h-[340px] xl:min-h-0 relative">
+          <div className="min-h-0 relative">
             <VisualLayer currentVisual={currentVisual} />
             
             <AnimatePresence>
@@ -142,7 +142,7 @@ export default function SessionView({ onDisconnect }) {
           </div>
 
           {/* Agent Orb & Audio Controls */}
-          <div className="flex-[2] min-h-[240px] xl:min-h-0 glass rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
+          <div className="min-h-0 glass rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
             <AgentOrb state={agentState} size={112} />
             
             {/* Simple audio visualizer for local mic could go here */}
@@ -150,11 +150,11 @@ export default function SessionView({ onDisconnect }) {
         </section>
 
         {/* Right Column: Lead Capture */}
-        <section className="order-3 min-h-[320px] xl:h-full xl:min-h-0">
+        <section className="session-panel">
           <LeadCapturePanel capturedFields={capturedFields} />
         </section>
         
-      </div>
+      </main>
     </div>
   );
 }

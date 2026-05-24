@@ -12,7 +12,7 @@ export default function WelcomeVisual() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex min-h-full flex-col items-center justify-center text-center px-6 py-8"
+      className="visual-scroll flex flex-col items-center justify-center text-center px-6 py-8"
     >
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}

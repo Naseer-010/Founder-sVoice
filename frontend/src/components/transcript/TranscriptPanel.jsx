@@ -59,7 +59,7 @@ export default function TranscriptPanel({ room, agentName }) {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full bg-bg-glass backdrop-blur-xl rounded-lg border border-border-glass overflow-hidden">
+    <div className="panel-surface flex flex-col bg-bg-glass backdrop-blur-xl border border-border-glass overflow-hidden">
       <div className="px-5 py-4 border-b border-border-glass flex items-center justify-between bg-bg-secondary/50">
         <h3 className="text-sm font-semibold text-text-primary tracking-wide">Live Transcript</h3>
         <div className="flex items-center gap-2">

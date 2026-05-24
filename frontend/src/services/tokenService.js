@@ -22,7 +22,13 @@ export async function fetchToken(roomName, participantName) {
 
   const response = await fetch(
     `${LIVEKIT_CONFIG.TOKEN_ENDPOINT}?${params.toString()}`,
-    { method: "POST" }
+    {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Accept": "application/json",
+      },
+    }
   );
 
   if (!response.ok) {

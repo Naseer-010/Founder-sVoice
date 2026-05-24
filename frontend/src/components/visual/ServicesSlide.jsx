@@ -75,7 +75,7 @@ export default function ServicesSlide({ data }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, x: -20 }}
-      className="h-full overflow-y-auto flex flex-col px-4 py-4"
+      className="visual-scroll flex flex-col px-4 py-4"
     >
       <motion.h3
         initial={{ opacity: 0, y: -10 }}

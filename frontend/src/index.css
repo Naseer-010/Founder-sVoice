@@ -189,3 +189,97 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ── Session Layout ───────────────────────────────────────── */
+
+.session-page {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding: 16px;
+}
+
+.session-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.session-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(420px, 1.6fr) minmax(240px, 0.9fr);
+  gap: 18px;
+}
+
+.session-panel,
+.session-stage {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.session-stage {
+  display: grid;
+  grid-template-rows: minmax(300px, 1.35fr) minmax(220px, 0.8fr);
+  gap: 18px;
+}
+
+.panel-surface {
+  height: 100%;
+  min-height: 0;
+  border-radius: 8px;
+}
+
+.visual-scroll {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+@media (max-width: 1180px) {
+  html, body, #root {
+    overflow: auto;
+  }
+
+  .session-page {
+    min-height: 100%;
+    height: auto;
+  }
+
+  .session-grid {
+    min-height: auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .session-stage {
+    min-height: 620px;
+    grid-row: 1;
+  }
+
+  .session-panel {
+    min-height: 340px;
+  }
+}
+
+@media (max-width: 640px) {
+  .session-page {
+    padding: 12px;
+  }
+
+  .session-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .session-stage {
+    min-height: 560px;
+    grid-template-rows: minmax(300px, 1fr) minmax(210px, auto);
+  }
+}

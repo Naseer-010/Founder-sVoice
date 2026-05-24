@@ -12,7 +12,7 @@ export default function LeadCapturePanel({ capturedFields }) {
   const fields = Object.entries(capturedFields || {});
   
   return (
-    <div className="flex flex-col h-full bg-bg-glass backdrop-blur-xl rounded-lg border border-border-glass overflow-hidden relative">
+    <div className="panel-surface flex flex-col bg-bg-glass backdrop-blur-xl border border-border-glass overflow-hidden relative">
       {/* Decorative gradient header */}
       <div className="h-1 w-full bg-gradient-to-r from-accent-purple to-accent-emerald" />
       

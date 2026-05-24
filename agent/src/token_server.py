@@ -114,6 +114,12 @@ def create_token_server() -> FastAPI:
 
     @app.get("/api/health")
     async def health() -> JSONResponse:
-        return JSONResponse({"status": "ok", "service": "maneuver-voice-agent"})
+        settings, missing = get_livekit_settings()
+        return JSONResponse({
+            "status": "ok",
+            "service": "maneuver-voice-agent",
+            "livekit_configured": settings is not None,
+            "missing": missing,
+        })
 
     return app
