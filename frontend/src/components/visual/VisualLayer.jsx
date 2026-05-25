@@ -1,9 +1,8 @@
 /**
- * VisualLayer.jsx — Dynamic content router for agent visuals.
+ * VisualLayer.jsx — Routes agent visual payloads to sub-components.
+ * Uses framer-motion AnimatePresence for smooth transitions between visuals.
  */
 import { AnimatePresence } from "framer-motion";
-import { VISUAL_TYPES } from "../../utils/constants";
-
 import WelcomeVisual from "./WelcomeVisual";
 import ServicesSlide from "./ServicesSlide";
 import ServiceDetail from "./ServiceDetail";
@@ -11,21 +10,20 @@ import ProcessDiagram from "./ProcessDiagram";
 import CaseStudyCard from "./CaseStudyCard";
 
 const COMPONENTS = {
-  [VISUAL_TYPES.WELCOME]: WelcomeVisual,
-  [VISUAL_TYPES.SERVICES_OVERVIEW]: ServicesSlide,
-  [VISUAL_TYPES.SERVICE_DETAIL]: ServiceDetail,
-  [VISUAL_TYPES.PROCESS_DIAGRAM]: ProcessDiagram,
-  [VISUAL_TYPES.CASE_STUDY]: CaseStudyCard,
+  welcome: WelcomeVisual,
+  services_overview: ServicesSlide,
+  service_detail: ServiceDetail,
+  process_diagram: ProcessDiagram,
+  case_study: CaseStudyCard,
 };
 
-export default function VisualLayer({ currentVisual }) {
-  const type = currentVisual?.type || VISUAL_TYPES.WELCOME;
+export default function VisualLayer({ visual }) {
+  const type = visual?.type || "welcome";
   const Component = COMPONENTS[type] || WelcomeVisual;
-
   return (
-    <div className="h-full w-full surface-1 overflow-hidden">
+    <div className="card" style={{ height: "100%", overflow: "hidden" }}>
       <AnimatePresence mode="wait">
-        <Component key={type} data={currentVisual?.data} />
+        <Component key={type} data={visual?.data} />
       </AnimatePresence>
     </div>
   );

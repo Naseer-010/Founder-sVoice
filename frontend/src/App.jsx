@@ -8,8 +8,8 @@ import React from "react";
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 import "@livekit/components-styles";
 
-import ConnectionScreen from "./components/ConnectionScreen";
-import SessionView from "./components/SessionView";
+import ConnectionScreen from "./components/session/ConnectionScreen";
+import SessionView from "./components/session/SessionView";
 import { useAgentConnection } from "./hooks/useAgentConnection";
 
 class ErrorBoundary extends React.Component {

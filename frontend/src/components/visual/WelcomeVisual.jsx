@@ -9,11 +9,10 @@ export default function WelcomeVisual() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-full flex flex-col items-center justify-center text-center px-6"
+      style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
     >
-      <p className="text-fg-2 text-sm max-w-xs leading-relaxed">
-        Ask about our services, process, or past work —
-        visuals will appear here as we talk.
+      <p style={{ color: "var(--color-fg-3)", fontSize: 13, maxWidth: 280, textAlign: "center", lineHeight: 1.6 }}>
+        Ask about our services, process, or past work — visuals will appear here as we talk.
       </p>
     </motion.div>
   );

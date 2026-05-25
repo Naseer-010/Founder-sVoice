@@ -1,30 +1,31 @@
 /**
- * AgentOrb.jsx — Minimal state indicator for the agent.
- * Clean, monochrome with a single accent color per state.
+ * AgentOrb.jsx — State indicator for the voice agent.
+ * Inline styles + framer-motion for smooth orb animations.
  */
-
 import { motion } from "framer-motion";
 
-const STATE_CONFIG = {
+const STATES = {
   initializing: { color: "#fbbf24", label: "Connecting" },
   listening:    { color: "#818cf8", label: "Listening" },
-  thinking:     { color: "#a78bfa", label: "Thinking" },
+  thinking:     { color: "#a78bfa", label: "Analyzing" },
   speaking:     { color: "#34d399", label: "Speaking" },
 };
 
-export default function AgentOrb({ state = "initializing", size = 96 }) {
-  const config = STATE_CONFIG[state] || STATE_CONFIG.initializing;
+export default function AgentOrb({ state = "initializing", size = 88 }) {
+  const config = STATES[state] || STATES.initializing;
   const isSpeaking = state === "speaking";
   const isThinking = state === "thinking";
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      {/* Orb container */}
-      <div className="relative" style={{ width: size, height: size }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+      {/* Orb */}
+      <div style={{ position: "relative", width: size, height: size }}>
         {/* Outer pulse ring */}
         <motion.div
-          className="absolute inset-0 rounded-full"
-          style={{ border: `1.5px solid ${config.color}`, opacity: 0.2 }}
+          style={{
+            position: "absolute", inset: -6, borderRadius: "50%",
+            border: `1.5px solid ${config.color}`, opacity: 0.2,
+          }}
           animate={{
             scale: isSpeaking ? [1, 1.35, 1] : [1, 1.15, 1],
             opacity: [0.15, 0.35, 0.15],
@@ -36,46 +37,74 @@ export default function AgentOrb({ state = "initializing", size = 96 }) {
           }}
         />
 
+        {/* Second ring (visible during thinking/speaking) */}
+        {(isThinking || isSpeaking) && (
+          <motion.div
+            style={{
+              position: "absolute", inset: -14, borderRadius: "50%",
+              border: `1px solid ${config.color}`, opacity: 0.12,
+            }}
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.08, 0.2, 0.08],
+            }}
+            transition={{
+              duration: isThinking ? 0.8 : 1,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.2,
+            }}
+          />
+        )}
+
         {/* Core circle */}
         <motion.div
-          className="absolute inset-3 rounded-full"
           style={{
-            background: `radial-gradient(circle at 40% 38%, ${config.color}40, ${config.color}18 65%, transparent)`,
-            border: `1px solid ${config.color}30`,
+            width: size, height: size, borderRadius: "50%",
+            background: `radial-gradient(circle at 40% 38%, ${config.color}45, ${config.color}12 70%, transparent)`,
+            border: `1px solid ${config.color}25`,
           }}
           animate={isThinking ? { rotate: 360 } : {}}
-          transition={isThinking ? { duration: 3, repeat: Infinity, ease: "linear" } : {}}
+          transition={isThinking ? { duration: 2.5, repeat: Infinity, ease: "linear" } : {}}
         />
 
-        {/* Inner dot */}
+        {/* Center dot */}
         <motion.div
-          className="absolute rounded-full"
           style={{
-            width: size * 0.2,
-            height: size * 0.2,
-            top: "50%",
-            left: "50%",
-            x: "-50%",
-            y: "-50%",
+            position: "absolute", top: "50%", left: "50%",
+            width: size * 0.16, height: size * 0.16, borderRadius: "50%",
             background: config.color,
-            boxShadow: `0 0 12px ${config.color}60`,
+            boxShadow: `0 0 14px ${config.color}60`,
           }}
           animate={{
             scale: isSpeaking ? [1, 1.5, 1] : [0.9, 1.1, 0.9],
+            x: "-50%",
+            y: "-50%",
           }}
           transition={{
-            duration: isSpeaking ? 0.5 : 2,
-            repeat: Infinity,
-            ease: "easeInOut",
+            scale: {
+              duration: isSpeaking ? 0.5 : 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            },
           }}
         />
       </div>
 
-      {/* State label */}
-      <span className="pill" style={{ color: config.color, borderColor: `${config.color}30` }}>
-        <span className="w-1.5 h-1.5 rounded-full" style={{ background: config.color }} />
+      {/* Status pill */}
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "4px 12px", borderRadius: 99,
+        background: "var(--color-bg-2)", border: "1px solid var(--color-line)",
+        fontSize: 11, fontWeight: 500, color: "var(--color-fg-2)",
+      }}>
+        <motion.span
+          style={{ width: 6, height: 6, borderRadius: "50%", background: config.color }}
+          animate={{ scale: [0.8, 1.2, 0.8] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+        />
         {config.label}
-      </span>
+      </div>
     </div>
   );
 }

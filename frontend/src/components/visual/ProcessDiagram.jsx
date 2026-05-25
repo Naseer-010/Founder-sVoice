@@ -1,47 +1,26 @@
-/**
- * ProcessDiagram.jsx — Step timeline for Maneuver's process.
- */
 import { motion } from "framer-motion";
 
 export default function ProcessDiagram({ data }) {
   const steps = data?.steps || [];
-
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="h-full flex flex-col p-5 overflow-y-auto"
-    >
-      <h3 className="text-xs font-medium text-fg-3 uppercase tracking-wider mb-5">
-        How we work
-      </h3>
-
-      <div className="space-y-0">
-        {steps.map((step, i) => (
-          <motion.div
-            key={step.number}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-            className="flex items-start gap-4"
-          >
-            {/* Timeline */}
-            <div className="flex flex-col items-center flex-shrink-0">
-              <div className="w-7 h-7 rounded-full border border-border flex items-center justify-center bg-surface-2">
-                <span className="text-[11px] font-semibold text-accent">{step.number}</span>
-              </div>
-              {i < steps.length - 1 && <div className="w-px h-6 bg-border" />}
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ height: "100%", overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 4 }}>
+      <span className="label" style={{ marginBottom: 8 }}>How we work</span>
+      {steps.map((step, i) => (
+        <motion.div key={step.number} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+          style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+            <div style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid var(--color-line)", background: "var(--color-bg-2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, color: "var(--color-accent)" }}>
+              {step.number}
             </div>
-
-            {/* Content */}
-            <div className="pb-4 -mt-0.5">
-              <h4 className="text-sm font-medium text-fg">{step.title}</h4>
-              <p className="text-xs text-fg-2 leading-relaxed mt-0.5">{step.description}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            {i < steps.length - 1 && <div style={{ width: 1, height: 20, background: "var(--color-line)" }} />}
+          </div>
+          <div style={{ paddingBottom: 8, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{step.title}</div>
+            <div style={{ fontSize: 12, color: "var(--color-fg-2)", lineHeight: 1.5, marginTop: 2 }}>{step.description}</div>
+          </div>
+        </motion.div>
+      ))}
     </motion.div>
   );
 }

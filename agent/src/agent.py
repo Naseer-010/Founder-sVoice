@@ -2,12 +2,11 @@
 agent.py — Main entrypoint for the Maneuver Voice AI Agent.
 
 Pipeline:
-  Mic → LiveKit → Deepgram STT → Gemini 2.5 Flash → text transcription → Frontend
-  
+  Mic → LiveKit → Deepgram STT (Nova-3) → Groq LLM (Llama 3 8B) → Deepgram TTS (Aura Asteria) → Speaker
+
   TTS is MODULAR — controlled by TTS_MODE env var:
-    "browser"  (default) — No server TTS. Text streams to frontend, browser speaks it.
-    "google"             — Google Cloud TTS (needs GOOGLE_APPLICATION_CREDENTIALS).
-    "gemini"             — Gemini-native TTS via google.beta.TTS (uses GOOGLE_API_KEY).
+    "deepgram" (default) — Deepgram Aura TTS (uses DEEPGRAM_API_KEY).
+    "browser"  (fallback) — No server TTS. Text streams to frontend, browser speaks it.
 """
 
 from __future__ import annotations
@@ -27,7 +26,7 @@ for p in (str(PROJECT_ROOT), str(SRC_DIR)):
 
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession
-from livekit.plugins import deepgram, google, silero
+from livekit.plugins import deepgram, groq, silero
 
 from config import load_environment
 
@@ -43,6 +42,7 @@ logger = logging.getLogger("maneuver.agent")
 
 # ── Token Server ──────────────────────────────────────────────
 
+
 def start_token_server() -> None:
     import uvicorn
     from token_server import create_token_server
@@ -57,41 +57,39 @@ def start_token_server() -> None:
 
 # ── TTS Factory ───────────────────────────────────────────────
 
+
 def build_tts():
     """
     Build a TTS engine based on TTS_MODE env var.
-    
+
     Modes:
-      "browser" — returns None. The frontend handles TTS via SpeechSynthesis.
-      "gemini"  — Gemini-native TTS (uses GOOGLE_API_KEY, same as LLM).
-      "google"  — Google Cloud TTS (needs GOOGLE_APPLICATION_CREDENTIALS JSON).
+      "deepgram" (default) — Deepgram Aura TTS (voice: aura-asteria-en).
+      "browser"  (fallback) — returns None. Frontend handles TTS via SpeechSynthesis.
     """
-    mode = os.environ.get("TTS_MODE", "browser").lower().strip()
+    mode = os.environ.get("TTS_MODE", "deepgram").lower().strip()
 
-    if mode == "browser":
-        logger.info("TTS_MODE=browser — no server TTS, frontend will use SpeechSynthesis")
-        return None
-
-    if mode == "gemini":
+    if mode == "deepgram":
         try:
-            engine = google.beta.TTS(voice="Kore", language="en-US")
-            logger.info("TTS_MODE=gemini — using Gemini TTS (voice=Kore)")
-            return engine
-        except (AttributeError, Exception) as e:
-            logger.error("Gemini TTS failed: %s — falling back to browser TTS", e)
-            return None
-
-    if mode == "google":
-        try:
-            engine = google.TTS(language="en-US")
-            logger.info("TTS_MODE=google — using Google Cloud TTS")
+            engine = deepgram.TTS(model="aura-asteria-en")
+            logger.info("TTS_MODE=deepgram — using Deepgram Aura TTS (voice=aura-asteria-en)")
             return engine
         except Exception as e:
-            logger.error("Google Cloud TTS failed: %s — falling back to browser TTS", e)
+            logger.error("Deepgram TTS failed: %s — falling back to browser TTS", e)
             return None
 
-    logger.warning("Unknown TTS_MODE=%s — defaulting to browser", mode)
-    return None
+    if mode == "browser":
+        logger.info(
+            "TTS_MODE=browser — no server TTS, frontend will use SpeechSynthesis"
+        )
+        return None
+
+    logger.warning("Unknown TTS_MODE=%s — defaulting to deepgram", mode)
+    try:
+        engine = deepgram.TTS(model="aura-asteria-en")
+        return engine
+    except Exception as e:
+        logger.error("Deepgram TTS fallback failed: %s — using browser TTS", e)
+        return None
 
 
 # ── Agent Server ──────────────────────────────────────────────
@@ -109,8 +107,12 @@ async def entrypoint(ctx: agents.JobContext) -> None:
 
     session_kwargs = dict(
         stt=deepgram.STT(model="nova-3", language="en"),
-        llm=google.LLM(model="gemini-2.5-flash"),
-        vad=silero.VAD.load(),
+        llm=groq.LLM(model="llama3-8b-8192"),
+        vad=silero.VAD.load(
+            min_silence_duration=1.0,
+            min_speech_duration=0.3,
+            activation_threshold=0.8,
+        ),
     )
     # Only add TTS if we have a server-side engine
     if tts_engine is not None:
@@ -121,11 +123,14 @@ async def entrypoint(ctx: agents.JobContext) -> None:
 
     await session.start(room=ctx.room, agent=agent)
 
+    if tts_engine is None:
+        session.output.set_audio_enabled(False)
+
     # Greet the visitor
     await session.generate_reply(
         instructions=(
-            "Greet the visitor warmly. Introduce yourself as Alex from Maneuver. "
-            "Say something like 'Hey there, I'm Alex from Maneuver. "
+            "Greet the visitor warmly. Introduce yourself as Founder from Maneuver. "
+            "Say something like 'Hey there, I'm Founder from Maneuver. "
             "Thanks for stopping by — what brings you here today?' "
             "Keep it to one or two sentences."
         ),
