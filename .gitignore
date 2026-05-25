@@ -35,7 +35,7 @@ htmlcov/
 venv/
 ENV/
 env/
-.env
+agent/.env
 
 # App Data
 agent/data/leads/*.json
