@@ -8,14 +8,14 @@ A real-time voice AI agent that simulates a conversation with a startup founder.
 
 ```
 ┌──────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────┐
-│  User's  │────▶│   LiveKit     │────▶│  Deepgram    │────▶│  LLM (pick   │────▶│ Deepgram │
-│   Mic    │     │  WebRTC Room  │     │  STT Nova-3  │     │  one below)  │     │ Aura TTS │
+│  User's  │────▶│   LiveKit    │────▶│  Deepgram    │────▶│  LLM (pick   │────▶│ Deepgram │
+│   Mic    │     │  WebRTC Room │     │  STT Nova-3  │     │  one below)  │     │ Aura TTS │
 └──────────┘     └──────────────┘     └──────────────┘     └──────────────┘     └──────────┘
                          │                                         │                    │
                          │                                         │                    │
                          ▼                                         ▼                    ▼
                   ┌──────────────┐                          ┌──────────────┐     ┌──────────┐
-                  │   React      │◀─────── RPC ────────────│  Founder     │     │  Audio   │
+                  │   React      │◀─────── RPC ─────────────│  Founder     │     │  Audio   │
                   │   Frontend   │        (visuals,         │  Agent       │     │  Stream  │
                   │              │         lead data)       │  (LiveKit)   │     │  → User  │
                   └──────────────┘                          └──────────────┘     └──────────┘
@@ -221,7 +221,7 @@ This starts:
 cd frontend
 npm run dev
 ```
-The frontend will be available at `http://localhost:5173`
+The frontend will be available at `http://localhost:3000`
 
 ### 5. Use the App
 
