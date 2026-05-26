@@ -12,6 +12,9 @@ Design Principles:
   - Open/Closed: New tools can be added without modifying existing ones
 """
 
+from google.genai._interactions.types import audio_response_format_param
+from google.genai._interactions.types import audio_response_format_param
+from google.genai._interactions.types import audio_response_format_param
 from __future__ import annotations
 
 import json
@@ -30,11 +33,11 @@ logger = logging.getLogger(__name__)
 class FounderAgent(Agent):
     """
     AI agent that represents Maneuver's founder in voice conversations.
-    
+
     Handles two conversation modes in a single agent:
     - Discovery Mode: Proactively asks questions to capture lead info
     - Q&A Mode: Answers questions about Maneuver from knowledge base
-    
+
     The agent fluidly switches between modes based on conversation context.
     """
 
@@ -66,48 +69,50 @@ class FounderAgent(Agent):
         Display the Maneuver services overview slide on the visitor's screen.
         Call this when discussing what services Maneuver offers.
         """
-        await self._send_rpc(ctx, "show_visual", {
-            "type": "services_overview",
-            "data": {
-                "services": [
-                    {
-                        "name": "Product Strategy & Discovery",
-                        "icon": "strategy",
-                        "description": "Validate ideas with intensive discovery sprints before writing code.",
-                    },
-                    {
-                        "name": "UI/UX Design",
-                        "icon": "design",
-                        "description": "User-centered design from wireframes to high-fidelity prototypes.",
-                    },
-                    {
-                        "name": "Full-Stack Engineering",
-                        "icon": "engineering",
-                        "description": "Modern web and mobile apps with React, Node.js, Python, and cloud.",
-                    },
-                    {
-                        "name": "AI & ML Integration",
-                        "icon": "ai",
-                        "description": "LLM features, custom ML models, recommendation engines, and more.",
-                    },
-                    {
-                        "name": "Growth & Launch Support",
-                        "icon": "growth",
-                        "description": "Launch strategy, analytics, A/B testing, and post-launch support.",
-                    },
-                ],
+        await self._send_rpc(
+            ctx,
+            "show_visual",
+            {
+                "type": "services_overview",
+                "data": {
+                    "services": [
+                        {
+                            "name": "Product Strategy & Discovery",
+                            "icon": "strategy",
+                            "description": "Validate ideas with intensive discovery sprints before writing code.",
+                        },
+                        {
+                            "name": "UI/UX Design",
+                            "icon": "design",
+                            "description": "User-centered design from wireframes to high-fidelity prototypes.",
+                        },
+                        {
+                            "name": "Full-Stack Engineering",
+                            "icon": "engineering",
+                            "description": "Modern web and mobile apps with React, Node.js, Python, and cloud.",
+                        },
+                        {
+                            "name": "AI & ML Integration",
+                            "icon": "ai",
+                            "description": "LLM features, custom ML models, recommendation engines, and more.",
+                        },
+                        {
+                            "name": "Growth & Launch Support",
+                            "icon": "growth",
+                            "description": "Launch strategy, analytics, A/B testing, and post-launch support.",
+                        },
+                    ],
+                },
             },
-        })
+        )
         return "Services overview is now displayed on the visitor's screen."
 
     @function_tool()
-    async def show_service_detail(
-        self, ctx: RunContext, service_name: str
-    ) -> str:
+    async def show_service_detail(self, ctx: RunContext, service_name: str) -> str:
         """
         Zoom into a specific Maneuver service with detailed information.
         Call this when the visitor asks about a particular service.
-        
+
         Args:
             service_name: The name of the service to show details for.
         """
@@ -188,12 +193,18 @@ class FounderAgent(Agent):
                 break
 
         if not detail:
-            detail = service_details.get("engineering", list(service_details.values())[0])
+            detail = service_details.get(
+                "engineering", list(service_details.values())[0]
+            )
 
-        await self._send_rpc(ctx, "show_visual", {
-            "type": "service_detail",
-            "data": detail,
-        })
+        await self._send_rpc(
+            ctx,
+            "show_visual",
+            {
+                "type": "service_detail",
+                "data": detail,
+            },
+        )
         return f"Showing detailed view for {detail['name']}."
 
     @function_tool()
@@ -202,18 +213,47 @@ class FounderAgent(Agent):
         Display Maneuver's engagement process diagram on the visitor's screen.
         Call this when explaining how Maneuver works or the engagement process.
         """
-        await self._send_rpc(ctx, "show_visual", {
-            "type": "process_diagram",
-            "data": {
-                "steps": [
-                    {"number": 1, "title": "Discovery Call", "description": "30-min conversation to understand your vision", "status": "active"},
-                    {"number": 2, "title": "Proposal", "description": "Detailed scope, timeline & pricing in 48 hours", "status": "upcoming"},
-                    {"number": 3, "title": "Design Sprint", "description": "1-2 week sprint to nail UX & architecture", "status": "upcoming"},
-                    {"number": 4, "title": "Build & Iterate", "description": "Agile 2-week sprints with regular demos", "status": "upcoming"},
-                    {"number": 5, "title": "Launch & Handoff", "description": "Deployment, docs & knowledge transfer", "status": "upcoming"},
-                ],
+        await self._send_rpc(
+            ctx,
+            "show_visual",
+            {
+                "type": "process_diagram",
+                "data": {
+                    "steps": [
+                        {
+                            "number": 1,
+                            "title": "Discovery Call",
+                            "description": "30-min conversation to understand your vision",
+                            "status": "active",
+                        },
+                        {
+                            "number": 2,
+                            "title": "Proposal",
+                            "description": "Detailed scope, timeline & pricing in 48 hours",
+                            "status": "upcoming",
+                        },
+                        {
+                            "number": 3,
+                            "title": "Design Sprint",
+                            "description": "1-2 week sprint to nail UX & architecture",
+                            "status": "upcoming",
+                        },
+                        {
+                            "number": 4,
+                            "title": "Build & Iterate",
+                            "description": "Agile 2-week sprints with regular demos",
+                            "status": "upcoming",
+                        },
+                        {
+                            "number": 5,
+                            "title": "Launch & Handoff",
+                            "description": "Deployment, docs & knowledge transfer",
+                            "status": "upcoming",
+                        },
+                    ],
+                },
             },
-        })
+        )
         return "Process diagram is now displayed."
 
     @function_tool()
@@ -221,7 +261,7 @@ class FounderAgent(Agent):
         """
         Display a case study card on the visitor's screen.
         Call this when referencing a specific past project or case study.
-        
+
         Args:
             case_name: Name or topic of the case study to display.
         """
@@ -262,10 +302,14 @@ class FounderAgent(Agent):
         if not study:
             study = list(case_studies.values())[0]
 
-        await self._send_rpc(ctx, "show_visual", {
-            "type": "case_study",
-            "data": study,
-        })
+        await self._send_rpc(
+            ctx,
+            "show_visual",
+            {
+                "type": "case_study",
+                "data": study,
+            },
+        )
         return f"Showing case study for {study['name']}."
 
     # ──────────────────────────────────────────────────────────────
@@ -273,13 +317,11 @@ class FounderAgent(Agent):
     # ──────────────────────────────────────────────────────────────
 
     @function_tool()
-    async def update_lead_field(
-        self, ctx: RunContext, field: str, value: str
-    ) -> str:
+    async def update_lead_field(self, ctx: RunContext, field: str, value: str) -> str:
         """
         Capture a piece of information about the visitor during the discovery call.
         Call this IMMEDIATELY when you learn any new information.
-        
+
         Args:
             field: The field to update. Must be one of: name, company, role, email, problem, timeline, budget, notes
             value: The value to set for the field.
@@ -288,11 +330,15 @@ class FounderAgent(Agent):
             result = self._lead_manager.update_field(field, value)
 
             # Notify frontend to update lead panel
-            await self._send_rpc(ctx, "update_lead", {
-                "field": result["field"],
-                "value": result["value"],
-                "all_fields": self._lead_manager.get_captured_fields(),
-            })
+            await self._send_rpc(
+                ctx,
+                "update_lead",
+                {
+                    "field": result["field"],
+                    "value": result["value"],
+                    "all_fields": self._lead_manager.get_captured_fields(),
+                },
+            )
 
             return f"Captured {field}: {value}"
         except ValueError as e:
@@ -307,11 +353,15 @@ class FounderAgent(Agent):
         """
         filepath = self._lead_manager.persist()
 
-        await self._send_rpc(ctx, "call_ended", {
-            "lead_id": self._lead_manager.lead_id,
-            "captured_fields": self._lead_manager.get_captured_fields(),
-            "is_complete": self._lead_manager.lead.is_complete(),
-        })
+        await self._send_rpc(
+            ctx,
+            "call_ended",
+            {
+                "lead_id": self._lead_manager.lead_id,
+                "captured_fields": self._lead_manager.get_captured_fields(),
+                "is_complete": self._lead_manager.lead.is_complete(),
+            },
+        )
 
         return (
             f"Discovery data saved (lead ID: {self._lead_manager.lead_id}). "
@@ -327,12 +377,12 @@ class FounderAgent(Agent):
     ) -> None:
         """
         Send an RPC call to the frontend participant.
-        
+
         Finds the first non-agent participant in the room and sends the RPC.
         Fails silently if no frontend participant is connected (graceful degradation).
         """
-        session = ctx.session
-        room = session.room
+        # session = ctx.session
+        room = getattr(self, "room", None)
 
         if room is None:
             logger.warning("No room available for RPC call")

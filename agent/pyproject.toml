@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "Voice AI 'Talk to Founder' agent for Maneuver — LiveKit + Deepgram + Groq"
 requires-python = ">=3.11"
 dependencies = [
-    "livekit-agents[silero,turn-detector,deepgram,groq]~=1.5",
+    "livekit-agents[silero,turn-detector,deepgram,groq,google]~=1.5",
     "python-dotenv>=1.0.0",
     "fastapi>=0.115.0",
     "uvicorn>=0.32.0",

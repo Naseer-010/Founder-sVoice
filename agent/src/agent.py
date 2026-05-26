@@ -17,6 +17,12 @@ import sys
 import threading
 from pathlib import Path
 
+from livekit import agents
+from livekit.agents import AgentServer, AgentSession, TurnHandlingOptions
+from livekit.plugins import deepgram, groq, silero, google
+
+from config import load_environment
+
 # Ensure src/ is on sys.path so bare imports work (config, token_server, etc.)
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = Path(__file__).resolve().parent
@@ -24,11 +30,6 @@ for p in (str(PROJECT_ROOT), str(SRC_DIR)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from livekit import agents
-from livekit.agents import AgentServer, AgentSession
-from livekit.plugins import deepgram, groq, silero
-
-from config import load_environment
 
 load_environment()
 
@@ -71,7 +72,9 @@ def build_tts():
     if mode == "deepgram":
         try:
             engine = deepgram.TTS(model="aura-asteria-en")
-            logger.info("TTS_MODE=deepgram — using Deepgram Aura TTS (voice=aura-asteria-en)")
+            logger.info(
+                "TTS_MODE=deepgram — using Deepgram Aura TTS (voice=aura-asteria-en)"
+            )
             return engine
         except Exception as e:
             logger.error("Deepgram TTS failed: %s — falling back to browser TTS", e)
@@ -107,12 +110,16 @@ async def entrypoint(ctx: agents.JobContext) -> None:
 
     session_kwargs = dict(
         stt=deepgram.STT(model="nova-3", language="en"),
-        llm=groq.LLM(model="llama3-8b-8192"),
+        llm=google.LLM(
+            model="gemini-2.5-flash",
+            max_output_tokens=800,
+        ),
         vad=silero.VAD.load(
             min_silence_duration=1.0,
             min_speech_duration=0.3,
             activation_threshold=0.8,
         ),
+        turn_handling=TurnHandlingOptions(preemptive_generation=None),
     )
     # Only add TTS if we have a server-side engine
     if tts_engine is not None:
@@ -120,6 +127,8 @@ async def entrypoint(ctx: agents.JobContext) -> None:
 
     session = AgentSession(**session_kwargs)
     agent = FounderAgent()
+
+    agent.room = ctx.room
 
     await session.start(room=ctx.room, agent=agent)
 
