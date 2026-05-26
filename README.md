@@ -1,6 +1,6 @@
 # 🎙️ Maneuver — Voice AI "Talk to Founder" Agent
 
-A real-time voice AI agent that simulates a conversation with a startup founder. Visitors land on the website, click "Start Conversation," and have a live voice call with an AI agent that discovers their needs, answers questions about Maneuver's services, and captures lead information — all in real time.
+A real-time voice AI agent that simulates a conversation with a startup founder. Visitors land on the website, click **"Start Conversation,"** and have a live voice call with an AI agent that discovers their needs, answers questions about Maneuver's services, and captures lead information — all in real time.
 
 ---
 
@@ -8,8 +8,8 @@ A real-time voice AI agent that simulates a conversation with a startup founder.
 
 ```
 ┌──────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────┐
-│  User's  │────▶│   LiveKit     │────▶│  Deepgram    │────▶│   Groq LLM   │────▶│ Deepgram │
-│   Mic    │     │  WebRTC Room  │     │  STT Nova-3  │     │ Llama3-8B    │     │ Aura TTS │
+│  User's  │────▶│   LiveKit     │────▶│  Deepgram    │────▶│  LLM (pick   │────▶│ Deepgram │
+│   Mic    │     │  WebRTC Room  │     │  STT Nova-3  │     │  one below)  │     │ Aura TTS │
 └──────────┘     └──────────────┘     └──────────────┘     └──────────────┘     └──────────┘
                          │                                         │                    │
                          │                                         │                    │
@@ -28,8 +28,8 @@ A real-time voice AI agent that simulates a conversation with a startup founder.
 | **Transport** | LiveKit WebRTC | Ultra-low latency bi-directional audio streaming |
 | **VAD** | Silero VAD | Voice Activity Detection — detects speech start/end |
 | **STT** | Deepgram Nova-3 | Real-time speech-to-text transcription |
-| **LLM** | Groq (Llama 3 8B 8192) | Fast inference for conversational AI responses |
-| **TTS** | Deepgram Aura (Asteria) | Natural-sounding text-to-speech (server-side) |
+| **LLM** | Google Gemini 2.5 Flash (default) **or** Groq Llama 3 8B | Conversational AI response generation |
+| **TTS** | Deepgram Aura (aura-asteria-en) | Natural-sounding text-to-speech (server-side) |
 | **TTS Fallback** | Browser SpeechSynthesis | Client-side fallback when server TTS is unavailable |
 | **Frontend** | React + Vite + Framer Motion | Real-time UI with live transcript, visuals, and lead capture |
 
@@ -41,8 +41,10 @@ A real-time voice AI agent that simulates a conversation with a startup founder.
 - **Dual Conversation Modes** — Discovery mode (agent leads) + Q&A mode (answers about Maneuver)
 - **Live Visual Layer** — Agent triggers contextual slides (services, process, case studies) via RPC
 - **Real-time Lead Capture** — Information appears on screen as the visitor shares it
+- **Auto Lead Persistence** — Leads are auto-saved when the call disconnects (safety net)
 - **Interruption Handling** — Agent stops speaking immediately when user talks
-- **Graceful Degradation** — Falls back to browser TTS if server TTS fails
+- **Swappable LLM** — Switch between Google Gemini and Groq with a single comment toggle
+- **Graceful TTS Degradation** — Falls back to browser TTS if Deepgram TTS fails
 
 ---
 
@@ -53,7 +55,8 @@ A real-time voice AI agent that simulates a conversation with a startup founder.
 |---------|---------|---------|
 | `livekit-agents` | ~1.5 | Agent framework with session management |
 | `livekit-plugins-deepgram` | ~1.5 | STT (Nova-3) + TTS (Aura Asteria) |
-| `livekit-plugins-groq` | ~1.5 | LLM inference (Llama 3 8B) |
+| `livekit-plugins-google` | ~1.5 | LLM inference (Gemini 2.5 Flash) — default |
+| `livekit-plugins-groq` | ~1.5 | LLM inference (Llama 3 8B) — alternative |
 | `livekit-plugins-silero` | ~1.5 | Voice Activity Detection |
 | `fastapi` | >=0.115 | Token server for frontend auth |
 | `uvicorn` | >=0.32 | ASGI server |
@@ -77,7 +80,7 @@ A real-time voice AI agent that simulates a conversation with a startup founder.
 Task_Maneuver/
 ├── agent/                          # Python backend
 │   ├── src/
-│   │   ├── agent.py                # Main entrypoint — pipeline wiring & TTS factory
+│   │   ├── agent.py                # Main entrypoint — pipeline wiring, LLM/TTS config
 │   │   ├── founder_agent.py        # Core AI agent — tools, visuals, lead capture
 │   │   ├── prompts.py              # System prompts & persona definitions
 │   │   ├── knowledge_base.py       # Maneuver knowledge base loader
@@ -86,10 +89,12 @@ Task_Maneuver/
 │   │   ├── config.py               # Environment & LiveKit config helpers
 │   │   └── __init__.py
 │   ├── data/
-│   │   ├── knowledge_base.md       # Maneuver company information
-│   │   └── leads/                  # Persisted lead JSON files
+│   │   ├── maneuver_kb.md          # Maneuver company knowledge base
+│   │   └── leads/                  # ⬅️ Lead JSON files saved here
+│   │       └── lead_<id>_<timestamp>.json
 │   ├── pyproject.toml              # Python dependencies (uv)
-│   └── .env                        # API keys (git-ignored)
+│   ├── .env                        # API keys (git-ignored)
+│   └── .env.example                # Template for .env setup
 │
 ├── frontend/                       # React frontend
 │   ├── src/
@@ -130,17 +135,44 @@ Task_Maneuver/
 
 ---
 
-## 🚀 Getting Started
+## 🔑 Getting API Keys
+
+You need **4 API keys** from 3 services. All have free tiers.
+
+### 1. LiveKit Cloud (Transport)
+1. Go to [cloud.livekit.io](https://cloud.livekit.io) and create a free account
+2. Create a new project
+3. Go to **Project Settings → Keys**
+4. Copy: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
+
+### 2. Deepgram (STT + TTS)
+1. Go to [console.deepgram.com](https://console.deepgram.com) and sign up (free $200 credit)
+2. Go to **API Keys → Create Key**
+3. Copy the API key → `DEEPGRAM_API_KEY`
+
+### 3. LLM Provider (choose one or both)
+
+#### Option A: Google Gemini (Default)
+1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+2. Click **Create API Key**
+3. Copy the key → `GOOGLE_API_KEY`
+
+#### Option B: Groq (Alternative — faster inference)
+1. Go to [console.groq.com](https://console.groq.com) and sign up
+2. Go to **API Keys → Create API Key**
+3. Copy the key → `GROQ_API_KEY`
+
+> **Note:** To switch between Gemini and Groq, edit `agent/src/agent.py` — see the [Switching LLM](#switching-llm-provider) section below.
+
+---
+
+## 🚀 Setup & Running
 
 ### Prerequisites
 
 - **Node.js** ≥ 18
 - **Python** ≥ 3.11
 - **uv** (Python package manager) — [Install uv](https://docs.astral.sh/uv/getting-started/installation/)
-- **API Keys:**
-  - [LiveKit Cloud](https://cloud.livekit.io) — URL, API Key, API Secret
-  - [Deepgram](https://console.deepgram.com) — API Key (for STT + TTS)
-  - [Groq](https://console.groq.com) — API Key (for LLM)
 
 ### 1. Clone the Repository
 
@@ -157,19 +189,9 @@ cd agent
 # Install Python dependencies
 uv sync
 
-# Configure environment variables
-cp .env.example .env   # or create .env manually
-```
-
-Edit `agent/.env` with your API keys:
-
-```env
-LIVEKIT_URL=wss://your-project.livekit.cloud
-LIVEKIT_API_KEY=your_livekit_api_key
-LIVEKIT_API_SECRET=your_livekit_api_secret
-DEEPGRAM_API_KEY=your_deepgram_api_key
-GROQ_API_KEY=your_groq_api_key
-TTS_MODE=deepgram
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your actual API keys (see "Getting API Keys" above)
 ```
 
 ### 3. Set Up the Frontend
@@ -183,24 +205,22 @@ npm install
 
 ### 4. Run the Application
 
-**Terminal 1 — Start the Agent Server:**
+Open **two terminal windows:**
 
+**Terminal 1 — Start the Agent Server:**
 ```bash
 cd agent
 uv run src/agent.py dev
 ```
-
 This starts:
 - The LiveKit agent server (connects to LiveKit Cloud)
 - The token server on `http://localhost:8081`
 
 **Terminal 2 — Start the Frontend:**
-
 ```bash
 cd frontend
 npm run dev
 ```
-
 The frontend will be available at `http://localhost:5173`
 
 ### 5. Use the App
@@ -209,10 +229,33 @@ The frontend will be available at `http://localhost:5173`
 2. Enter your name (optional) and click **Start Conversation**
 3. Allow microphone access when prompted
 4. Start talking — the AI founder will respond in real-time!
+5. When the call ends, lead data is automatically saved
 
 ---
 
 ## ⚙️ Configuration
+
+### Switching LLM Provider
+
+Edit `agent/src/agent.py` around line 113:
+
+**Using Google Gemini (default):**
+```python
+llm=google.LLM(
+    model="gemini-2.5-flash",
+    max_output_tokens=800,
+),
+```
+
+**Using Groq (faster inference):**
+```python
+llm=groq.LLM(
+    model="llama3-8b-8192",
+    max_output_tokens=800,
+),
+```
+
+Just comment out one and uncomment the other. Make sure the corresponding API key is set in `.env`.
 
 ### TTS Modes
 
@@ -225,7 +268,7 @@ Set `TTS_MODE` in `agent/.env`:
 
 ### VAD Parameters
 
-Voice Activity Detection is tuned in `agent.py`:
+Voice Activity Detection is tuned in `agent/src/agent.py`:
 
 ```python
 silero.VAD.load(
@@ -237,16 +280,62 @@ silero.VAD.load(
 
 ---
 
+## 📋 Lead Data
+
+### How Leads Are Captured
+
+1. **During the call** — The LLM calls `update_lead_field()` every time it learns new info (name, company, problem, etc.)
+2. **On call end** — The LLM calls `end_discovery_call()` which persists all data to disk
+3. **Auto-save (safety net)** — If the call disconnects without the LLM calling `end_discovery_call`, lead data is automatically saved on room disconnect
+
+### Where Leads Are Stored
+
+Leads are saved as JSON files in:
+```
+agent/data/leads/
+```
+
+Each file is named: `lead_<id>_<timestamp>.json`
+
+**Example lead file:**
+```json
+{
+  "id": "d5075da6",
+  "created_at": "2026-05-25T17:09:58.238103+00:00",
+  "name": "John Doe",
+  "company": "Acme Corp",
+  "role": "CTO",
+  "email": "john@acme.com",
+  "problem": "Need an MVP for our AI-powered scheduling tool",
+  "timeline": "3 months",
+  "budget": "$50k-$80k",
+  "notes": "Currently using spreadsheets, wants mobile app too",
+  "call_duration_seconds": 0.0,
+  "transcript_summary": ""
+}
+```
+
+### Viewing Leads via API
+
+While the agent is running, you can fetch all leads via:
+```bash
+curl http://localhost:8081/api/leads
+```
+
+This returns all saved leads as JSON.
+
+---
+
 ## 📋 How It Works
 
 1. **Connection** — Frontend fetches a LiveKit token from the token server and joins a WebRTC room
 2. **Voice Capture** — User's microphone audio streams to LiveKit via WebRTC
 3. **STT** — Deepgram Nova-3 transcribes speech to text in real-time
 4. **VAD** — Silero detects when the user stops speaking (turn detection)
-5. **LLM** — Groq runs Llama 3 8B to generate contextual responses
+5. **LLM** — Gemini or Groq generates contextual responses based on the conversation
 6. **TTS** — Deepgram Aura converts the response to natural speech audio
 7. **Visuals** — The agent triggers frontend UI updates via LiveKit RPC (services slides, process diagrams, case studies)
-8. **Lead Capture** — Information is captured in real-time and persisted as JSON
+8. **Lead Capture** — Information is captured in real-time and persisted as JSON to `agent/data/leads/`
 
 ---
 

@@ -114,6 +114,11 @@ async def entrypoint(ctx: agents.JobContext) -> None:
             model="gemini-2.5-flash",
             max_output_tokens=800,
         ),
+        # ── To use Groq instead: comment out google.LLM above, uncomment below ──
+        # llm=groq.LLM(
+        #     model="llama3-8b-instant",
+        #     max_completion_tokens=1000,
+        # ),
         vad=silero.VAD.load(
             min_silence_duration=1.0,
             min_speech_duration=0.3,
@@ -146,6 +151,19 @@ async def entrypoint(ctx: agents.JobContext) -> None:
     )
 
     logger.info("Agent started — lead_id=%s", agent.lead_manager.lead_id)
+
+    # Auto-persist leads when the room disconnects (safety net)
+    # This ensures data is saved even if the LLM doesn't call end_discovery_call
+    def _auto_persist_lead(*_args):
+        if not agent.lead_manager._persisted:
+            captured = agent.lead_manager.get_captured_fields()
+            if captured:
+                filepath = agent.lead_manager.persist()
+                logger.info("Auto-persisted lead on disconnect — %s", filepath.name)
+            else:
+                logger.info("No lead data captured — skipping auto-persist")
+
+    ctx.room.on("disconnected", _auto_persist_lead)
 
 
 # ── Main ──────────────────────────────────────────────────────

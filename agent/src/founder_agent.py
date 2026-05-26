@@ -12,9 +12,6 @@ Design Principles:
   - Open/Closed: New tools can be added without modifying existing ones
 """
 
-from google.genai._interactions.types import audio_response_format_param
-from google.genai._interactions.types import audio_response_format_param
-from google.genai._interactions.types import audio_response_format_param
 from __future__ import annotations
 
 import json
